@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #f3eee4;
+  --paper-deep: #ebe3d4;
+  --panel: rgba(255, 251, 244, 0.74);
+  --panel-strong: rgba(255, 249, 239, 0.92);
+  --ink: #171411;
+  --muted: #6a6255;
+  --muted-strong: #4a4339;
+  --border-soft: rgba(30, 25, 18, 0.12);
+  --border-strong: rgba(30, 25, 18, 0.18);
+  --accent: #a95a2e;
+  --accent-soft: #d8a886;
+  --sage: #4d6258;
+  --charcoal: #141210;
+}
+
+html {
+  background: var(--paper);
+}
+
+body {
+  min-height: 100vh;
+  color: var(--ink);
+  font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  background:
+    radial-gradient(circle at top right, rgba(216, 168, 134, 0.22), transparent 28%),
+    radial-gradient(circle at left center, rgba(91, 110, 98, 0.12), transparent 22%),
+    linear-gradient(180deg, #f8f3ea 0%, var(--paper) 44%, var(--paper-deep) 100%);
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(17, 14, 12, 0.12) 0.55px, transparent 0.55px);
+  background-size: 11px 11px;
+  opacity: 0.08;
+  mix-blend-mode: multiply;
+}
+
+::selection {
+  background: rgba(169, 90, 46, 0.18);
+}
+
+.dashboard-display {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", "URW Palladio L", Georgia, serif;
+  letter-spacing: -0.055em;
+}
+
+.dashboard-mono {
+  font-family: "SFMono-Regular", "IBM Plex Mono", "Cascadia Mono", "Liberation Mono", monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.dashboard-panel {
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  box-shadow:
+    0 28px 90px rgba(38, 28, 16, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.44);
+  backdrop-filter: blur(14px);
+}
+
+.dashboard-panel-dark {
+  background:
+    linear-gradient(180deg, rgba(27, 24, 21, 0.96) 0%, rgba(19, 17, 15, 0.98) 100%);
+  color: #f7f2e9;
+  border: 1px solid rgba(255, 246, 232, 0.08);
+  box-shadow: 0 28px 90px rgba(16, 12, 8, 0.28);
+}
+
+.dashboard-grid {
+  background-image:
+    linear-gradient(rgba(27, 24, 20, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(27, 24, 20, 0.025) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
