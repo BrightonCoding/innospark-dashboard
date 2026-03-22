@@ -49,28 +49,47 @@ function getPreviousHistoryPoint(
   return history.at(-2) ?? null;
 }
 
-function formatDelta(current: number, previous: number | null): string {
+function getDelta(current: number, previous: number | null): number | null {
   if (previous === null) {
-    return "New baseline";
+    return null;
   }
 
-  const delta = current - previous;
+  return current - previous;
+}
+
+function formatDelta(current: number, previous: number | null): string {
+  const delta = getDelta(current, previous);
+
+  if (delta === null) {
+    return "Baseline";
+  }
+
   if (delta === 0) {
-    return "No change";
+    return "Flat";
   }
 
   return `${delta > 0 ? "+" : ""}${formatCount(delta)}`;
 }
 
-function getWeeklyGain(history: DashboardHistoryPoint[]): number {
-  if (history.length <= 1) {
-    return 0;
+function getDeltaTone(
+  current: number,
+  previous: number | null
+): "positive" | "negative" | "neutral" {
+  const delta = getDelta(current, previous);
+
+  if (delta === null || delta === 0) {
+    return "neutral";
   }
 
-  const recentWindow = history.slice(-7);
-  const firstPoint = recentWindow[0];
-  const lastPoint = recentWindow.at(-1) ?? firstPoint;
-  return lastPoint.totalParticipants - firstPoint.totalParticipants;
+  return delta > 0 ? "positive" : "negative";
+}
+
+function getTrendNote(previousPoint: DashboardHistoryPoint | null): string {
+  if (!previousPoint) {
+    return "First recorded day";
+  }
+
+  return `vs ${formatDay(previousPoint.date)}`;
 }
 
 export default function Dashboard() {
@@ -138,104 +157,29 @@ export default function Dashboard() {
 
   const history = snapshot?.history ?? [];
   const previousPoint = getPreviousHistoryPoint(history);
-  const latestPoint = history.at(-1) ?? null;
-  const weeklyGain = getWeeklyGain(history);
+  const trendNote = getTrendNote(previousPoint);
   const firstRecordedPoint = history[0] ?? null;
-  const sourceShare =
-    snapshot && snapshot.totalParticipants > 0
-      ? Math.round((snapshot.devpostCount ?? 0) / snapshot.totalParticipants * 100)
-      : 0;
 
   return (
     <main className="relative mx-auto max-w-[1500px] px-4 py-4 sm:px-6 lg:px-8 lg:py-8">
-      <div className="grid gap-6 lg:grid-cols-[1.45fr_0.85fr]">
-        <section className="dashboard-panel rounded-[34px] p-6 sm:p-8 lg:p-10">
-          <span className="dashboard-mono inline-flex rounded-full bg-[var(--ink)] px-3 py-1 text-[11px] text-[var(--paper)]">
-            Live dashboard
-          </span>
-          <h1 className="dashboard-display mt-8 max-w-4xl text-[clamp(3.3rem,8vw,6.8rem)] leading-[0.9] text-[var(--ink)]">
-            Participant growth, tracked daily.
-          </h1>
-          <p className="mt-5 max-w-2xl text-[15px] leading-7 text-[var(--muted)] sm:text-base">
-            A clean operating view of Devpost registrations and Google Form
-            submissions for the INNOSpark Pitch Competition. The line updates as
-            each day records a new snapshot.
-          </p>
-
-          <div className="mt-8 flex flex-wrap items-center gap-3 text-sm text-[var(--muted-strong)]">
-            <StatusPill label={refreshing ? "Refreshing" : "Live sync active"} />
-            <StatusPill label="Refreshes every 30s" />
-            {snapshot && (
-              <StatusPill label={`Last updated ${formatTimestamp(snapshot.fetchedAt)}`} />
-            )}
-            {snapshot?.stale && <StatusPill label="Using saved snapshot" muted={false} />}
-          </div>
-        </section>
-
-        <aside className="dashboard-panel-dark rounded-[34px] p-6 sm:p-8">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="dashboard-mono text-[11px] text-[#c9bfaf]">
-                Pulse Check
-              </p>
-              <h2 className="dashboard-display mt-3 text-4xl leading-none text-[#f8f1e5]">
-                {formatCount(snapshot?.totalParticipants ?? 0)}
-              </h2>
-              <p className="mt-2 text-sm text-[#bdb19f]">
-                Total participants on record
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => void fetchDashboard()}
-              disabled={refreshing}
-              className="rounded-full border border-[#f0e6d7]/20 bg-[#f5ecde]/8 px-4 py-2 text-xs font-medium tracking-[0.18em] text-[#f5ede1] uppercase transition hover:bg-[#f5ecde]/14 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Refresh
-            </button>
-          </div>
-
-          <dl className="mt-8 space-y-4 text-sm text-[#c9bfaf]">
-            <MetricRow
-              label="Devpost share"
-              value={`${sourceShare}%`}
-            />
-            <MetricRow
-              label="7 day gain"
-              value={
-                weeklyGain === 0 ? "Flat" : `${weeklyGain > 0 ? "+" : ""}${formatCount(weeklyGain)}`
-              }
-            />
-            <MetricRow
-              label="First recorded"
-              value={firstRecordedPoint ? formatDay(firstRecordedPoint.date) : "Pending"}
-            />
-            <MetricRow
-              label="Latest snapshot"
-              value={latestPoint ? formatDay(latestPoint.date) : "Pending"}
-            />
-          </dl>
-        </aside>
-      </div>
-
       {error && (
-        <div className="mt-6 rounded-[28px] border border-red-500/20 bg-red-500/8 px-5 py-4 text-sm text-red-900">
+        <div className="mb-6 rounded-[28px] border border-red-500/20 bg-red-500/8 px-5 py-4 text-sm text-red-900">
           {error}
         </div>
       )}
 
       {snapshot?.warnings.length ? (
-        <div className="mt-6 rounded-[28px] border border-[var(--border-soft)] bg-[rgba(255,248,236,0.78)] px-5 py-4 text-sm text-[var(--muted-strong)]">
+        <div className="mb-6 rounded-[28px] border border-[var(--border-soft)] bg-[rgba(255,248,236,0.78)] px-5 py-4 text-sm text-[var(--muted-strong)]">
           {snapshot.warnings.join(" ")}
         </div>
       ) : null}
 
       {loading && !snapshot ? (
-        <div className="mt-8 flex min-h-[420px] items-center justify-center rounded-[34px] border border-[var(--border-soft)] bg-[var(--panel)]">
+        <div className="flex min-h-[420px] items-center justify-center rounded-[34px] border border-[var(--border-soft)] bg-[var(--panel)]">
           <div className="h-14 w-14 animate-spin rounded-full border-2 border-[var(--accent-soft)] border-t-[var(--accent)]" />
         </div>
       ) : !snapshot ? (
-        <div className="mt-8 rounded-[34px] border border-[var(--border-soft)] bg-[var(--panel)] px-6 py-16 text-center">
+        <div className="rounded-[34px] border border-[var(--border-soft)] bg-[var(--panel)] px-6 py-16 text-center">
           <p className="dashboard-display text-4xl text-[var(--ink)]">
             Dashboard data is unavailable.
           </p>
@@ -253,82 +197,122 @@ export default function Dashboard() {
         </div>
       ) : (
         <>
-          <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <MetricCard
-              label="Total Participants"
-              value={snapshot.totalParticipants}
-              note={formatDelta(snapshot.totalParticipants, previousPoint?.totalParticipants ?? null)}
-              tone="dark"
-            />
-            <MetricCard
-              label="Devpost"
-              value={snapshot.devpostCount ?? "—"}
-              note={formatDelta(snapshot.devpostCount ?? 0, previousPoint?.devpostCount ?? null)}
-              link={DEVPOST_URL}
-            />
-            <MetricCard
-              label="Google Form"
-              value={snapshot.googleFormCount}
-              note={formatDelta(snapshot.googleFormCount, previousPoint?.googleFormCount ?? null)}
-            />
-            <MetricCard
-              label="Teams Submitted"
-              value={snapshot.sheetTeamCount}
-              note={formatDelta(snapshot.sheetTeamCount, previousPoint?.sheetTeamCount ?? null)}
-            />
-          </section>
-
-          <section className="mt-6 grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
+          <section className="grid gap-6 xl:grid-cols-[1.34fr_0.76fr]">
             <div className="dashboard-panel rounded-[34px] p-5 sm:p-6 lg:p-8">
               <ProgressChart history={history} />
+              <div className="mt-6 flex flex-wrap gap-3 text-sm text-[var(--muted-strong)]">
+                <StatusPill label={refreshing ? "Refreshing" : "Live sync active"} />
+                <StatusPill label="Updates every 30s" />
+                <StatusPill label={`Last updated ${formatTimestamp(snapshot.fetchedAt)}`} />
+                {snapshot.stale && (
+                  <StatusPill label="Using saved snapshot" muted={false} />
+                )}
+              </div>
             </div>
 
-            <aside className="dashboard-panel rounded-[34px] p-6 sm:p-8">
-              <p className="dashboard-mono text-[11px] text-[var(--muted)]">
-                Snapshot Summary
-              </p>
-              <h3 className="dashboard-display mt-3 text-4xl leading-none text-[var(--ink)]">
-                Where growth is coming from
-              </h3>
-              <p className="mt-4 text-sm leading-7 text-[var(--muted)]">
-                A daily read on the participant mix. The chart tracks overall
-                momentum while the split below shows how much of the total is
-                being driven by Devpost versus the Google Form.
-              </p>
+            <aside className="dashboard-panel-dark rounded-[34px] p-6 sm:p-8">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="dashboard-mono text-[11px] text-[#c9bfaf]">
+                    Participant Count
+                  </p>
+                  <h1 className="dashboard-display mt-5 text-[clamp(4.2rem,8vw,6.4rem)] leading-none text-[#f8f1e5]">
+                    {formatCount(snapshot.totalParticipants)}
+                  </h1>
+                  <p
+                    className={`mt-4 text-sm ${
+                      getDeltaTone(
+                        snapshot.totalParticipants,
+                        previousPoint?.totalParticipants ?? null
+                      ) === "positive"
+                        ? "text-[#f0d5bc]"
+                        : "text-[#bdb19f]"
+                    }`}
+                  >
+                    {formatDelta(
+                      snapshot.totalParticipants,
+                      previousPoint?.totalParticipants ?? null
+                    )}{" "}
+                    {trendNote}
+                  </p>
+                </div>
 
-              <div className="mt-8 space-y-6">
-                <SourceBar
+                <button
+                  type="button"
+                  onClick={() => void fetchDashboard()}
+                  disabled={refreshing}
+                  className="rounded-full border border-[#f0e6d7]/20 bg-[#f5ecde]/8 px-4 py-2 text-xs font-medium tracking-[0.18em] text-[#f5ede1] uppercase transition hover:bg-[#f5ecde]/14 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Refresh
+                </button>
+              </div>
+
+              <div className="mt-8 grid gap-3">
+                <ParticipantStat
+                  label="Total participants"
+                  value={snapshot.totalParticipants}
+                  delta={formatDelta(
+                    snapshot.totalParticipants,
+                    previousPoint?.totalParticipants ?? null
+                  )}
+                  tone={getDeltaTone(
+                    snapshot.totalParticipants,
+                    previousPoint?.totalParticipants ?? null
+                  )}
+                  note={trendNote}
+                />
+                <ParticipantStat
                   label="Devpost"
                   value={snapshot.devpostCount ?? 0}
-                  total={snapshot.totalParticipants}
-                  color="var(--accent)"
+                  delta={formatDelta(
+                    snapshot.devpostCount ?? 0,
+                    previousPoint?.devpostCount ?? null
+                  )}
+                  tone={getDeltaTone(
+                    snapshot.devpostCount ?? 0,
+                    previousPoint?.devpostCount ?? null
+                  )}
+                  note={trendNote}
+                  link={DEVPOST_URL}
                 />
-                <SourceBar
+                <ParticipantStat
                   label="Google Form"
                   value={snapshot.googleFormCount}
-                  total={snapshot.totalParticipants}
-                  color="var(--sage)"
+                  delta={formatDelta(
+                    snapshot.googleFormCount,
+                    previousPoint?.googleFormCount ?? null
+                  )}
+                  tone={getDeltaTone(
+                    snapshot.googleFormCount,
+                    previousPoint?.googleFormCount ?? null
+                  )}
+                  note={trendNote}
+                />
+                <ParticipantStat
+                  label="Teams submitted"
+                  value={snapshot.sheetTeamCount}
+                  delta={formatDelta(
+                    snapshot.sheetTeamCount,
+                    previousPoint?.sheetTeamCount ?? null
+                  )}
+                  tone={getDeltaTone(
+                    snapshot.sheetTeamCount,
+                    previousPoint?.sheetTeamCount ?? null
+                  )}
+                  note={trendNote}
                 />
               </div>
 
-              <div className="mt-10 grid gap-4 sm:grid-cols-2">
-                <InsightCard
-                  label="Recorded span"
+              <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                <MiniMeta
+                  label="Tracking since"
                   value={
-                    firstRecordedPoint && latestPoint
-                      ? `${formatDay(firstRecordedPoint.date)} - ${formatDay(latestPoint.date)}`
-                      : "Starts today"
+                    firstRecordedPoint ? formatDay(firstRecordedPoint.date) : "Today"
                   }
                 />
-                <InsightCard
-                  label="Net gain"
-                  value={
-                    firstRecordedPoint
-                      ? `${firstRecordedPoint.totalParticipants === snapshot.totalParticipants ? "" : "+"}${formatCount(
-                          snapshot.totalParticipants - firstRecordedPoint.totalParticipants
-                        )}`
-                      : formatCount(snapshot.totalParticipants)
-                  }
+                <MiniMeta
+                  label="Snapshot time"
+                  value={formatTimestamp(snapshot.fetchedAt)}
                 />
               </div>
             </aside>
@@ -340,9 +324,9 @@ export default function Dashboard() {
                 <p className="dashboard-mono text-[11px] text-[var(--muted)]">
                   Submission Log
                 </p>
-                <h3 className="dashboard-display mt-3 text-4xl leading-none text-[var(--ink)]">
+                <h2 className="dashboard-display mt-3 text-4xl leading-none text-[var(--ink)]">
                   Google Form responses
-                </h3>
+                </h2>
               </div>
               <div className="text-sm text-[var(--muted)]">
                 {snapshot.sheetTeamCount} teams · {snapshot.googleFormCount} participants
@@ -411,110 +395,62 @@ function StatusPill({
   );
 }
 
-function MetricRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-4 first:border-t-0 first:pt-0">
-      <dt>{label}</dt>
-      <dd className="text-right text-[#f7f2e7]">{value}</dd>
-    </div>
-  );
-}
-
-function MetricCard({
+function ParticipantStat({
   label,
   value,
+  delta,
+  tone,
   note,
-  tone = "light",
   link,
 }: {
   label: string;
-  value: number | string;
+  value: number;
+  delta: string;
+  tone: "positive" | "negative" | "neutral";
   note: string;
-  tone?: "dark" | "light";
   link?: string;
 }) {
-  const card = (
-    <div
-      className={
-        tone === "dark"
-          ? "dashboard-panel-dark rounded-[28px] p-6"
-          : "dashboard-panel rounded-[28px] p-6"
-      }
-    >
-      <p
-        className={`dashboard-mono text-[11px] ${
-          tone === "dark" ? "text-[#c9bfaf]" : "text-[var(--muted)]"
-        }`}
-      >
-        {label}
-      </p>
-      <p
-        className={`dashboard-display mt-5 text-5xl leading-none ${
-          tone === "dark" ? "text-[#f8f1e5]" : "text-[var(--ink)]"
-        }`}
-      >
-        {formatCount(value)}
-      </p>
-      <p
-        className={`mt-4 text-sm ${
-          tone === "dark" ? "text-[#bdb19f]" : "text-[var(--muted)]"
-        }`}
-      >
-        {note} vs previous day
-      </p>
+  const content = (
+    <div className="rounded-[24px] border border-white/10 bg-white/[0.03] px-5 py-4">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <p className="dashboard-mono text-[10px] text-[#c9bfaf]">{label}</p>
+          <p className="dashboard-display mt-3 text-4xl leading-none text-[#f8f1e5]">
+            {formatCount(value)}
+          </p>
+        </div>
+        <span
+          className={`rounded-full px-3 py-1 text-xs ${
+            tone === "positive"
+              ? "bg-[rgba(216,168,134,0.14)] text-[#f0d5bc]"
+              : tone === "negative"
+                ? "bg-[rgba(170,72,54,0.18)] text-[#f4c3b8]"
+                : "bg-white/[0.06] text-[#d0c4b3]"
+          }`}
+        >
+          {delta}
+        </span>
+      </div>
+      <p className="mt-3 text-xs text-[#bdb19f]">{note}</p>
     </div>
   );
 
   if (!link) {
-    return card;
+    return content;
   }
 
   return (
     <a href={link} target="_blank" rel="noopener noreferrer" className="block">
-      {card}
+      {content}
     </a>
   );
 }
 
-function SourceBar({
-  label,
-  value,
-  total,
-  color,
-}: {
-  label: string;
-  value: number;
-  total: number;
-  color: string;
-}) {
-  const percentage = total > 0 ? Math.max((value / total) * 100, 0) : 0;
-
+function MiniMeta({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-sm font-medium text-[var(--muted-strong)]">{label}</p>
-        <p className="text-sm text-[var(--muted)]">
-          {formatCount(value)} · {Math.round(percentage)}%
-        </p>
-      </div>
-      <div className="mt-3 h-3 rounded-full bg-[rgba(23,20,17,0.08)]">
-        <div
-          className="h-full rounded-full transition-[width]"
-          style={{
-            width: `${Math.min(percentage, 100)}%`,
-            backgroundColor: color,
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function InsightCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[24px] border border-[var(--border-soft)] bg-[rgba(255,252,245,0.72)] p-5">
-      <p className="dashboard-mono text-[10px] text-[var(--muted)]">{label}</p>
-      <p className="mt-3 text-sm leading-6 text-[var(--muted-strong)]">{value}</p>
+    <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
+      <p className="dashboard-mono text-[10px] text-[#c9bfaf]">{label}</p>
+      <p className="mt-3 text-sm text-[#f4ecdf]">{value}</p>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { DashboardHistoryPoint } from "@/lib/dashboard-types";
 
 const CHART_WIDTH = 960;
@@ -62,6 +63,23 @@ function buildAreaPath(points: ChartPoint[]): string {
 
 export default function ProgressChart({ history }: ProgressChartProps) {
   const points = history.slice(-VISIBLE_POINTS);
+  const [isAnimated, setIsAnimated] = useState(false);
+  const animationKey = points
+    .map(
+      (point) =>
+        `${point.date}:${point.totalParticipants}:${point.devpostCount}:${point.googleFormCount}`
+    )
+    .join("|");
+
+  useEffect(() => {
+    setIsAnimated(false);
+
+    const frame = window.requestAnimationFrame(() => {
+      setIsAnimated(true);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [animationKey]);
 
   if (points.length === 0) {
     return (
@@ -136,7 +154,7 @@ export default function ProgressChart({ history }: ProgressChartProps) {
             Daily Progress
           </p>
           <h3 className="dashboard-display mt-2 text-3xl leading-none text-[var(--ink)] md:text-4xl">
-            Registrations over time
+            Numbers versus previous days
           </h3>
         </div>
         <div className="flex flex-wrap items-center gap-4 text-sm text-[var(--muted)]">
@@ -191,22 +209,33 @@ export default function ProgressChart({ history }: ProgressChartProps) {
             <path
               d={buildAreaPath(totalCoordinates)}
               fill="rgba(24, 22, 19, 0.05)"
+              style={{
+                opacity: isAnimated ? 1 : 0,
+                transition: "opacity 700ms ease",
+              }}
             />
           )}
 
-          {seriesCoordinates.map((entry) => (
+          {seriesCoordinates.map((entry, index) => (
             <polyline
               key={entry.key}
               fill="none"
+              pathLength={100}
               stroke={entry.color}
               strokeWidth={entry.strokeWidth}
               strokeLinejoin="round"
               strokeLinecap="round"
               points={buildPolyline(entry.coordinates)}
+              style={{
+                opacity: isAnimated ? 1 : 0.35,
+                strokeDasharray: 100,
+                strokeDashoffset: isAnimated ? 0 : 100,
+                transition: `stroke-dashoffset ${900 + index * 160}ms cubic-bezier(0.22, 1, 0.36, 1), opacity 450ms ease`,
+              }}
             />
           ))}
 
-          {seriesCoordinates.map((entry) =>
+          {seriesCoordinates.map((entry, seriesIndex) =>
             entry.coordinates.map((point, index) => (
               <circle
                 key={`${entry.key}-${index}`}
@@ -216,6 +245,12 @@ export default function ProgressChart({ history }: ProgressChartProps) {
                 fill={entry.color}
                 stroke="rgba(247, 243, 235, 0.9)"
                 strokeWidth={2}
+                style={{
+                  opacity: isAnimated ? 1 : 0,
+                  transformOrigin: `${point.x}px ${point.y}px`,
+                  transform: isAnimated ? "scale(1)" : "scale(0.4)",
+                  transition: `transform 420ms cubic-bezier(0.2, 0.9, 0.25, 1) ${220 + index * 55 + seriesIndex * 80}ms, opacity 320ms ease ${220 + index * 55 + seriesIndex * 80}ms`,
+                }}
               />
             ))
           )}
