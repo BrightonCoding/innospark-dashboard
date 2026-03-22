@@ -5,7 +5,6 @@ import ProgressChart from "@/app/components/ProgressChart";
 import type {
   DashboardHistoryPoint,
   DashboardSnapshot,
-  SheetRow,
 } from "@/lib/dashboard-types";
 
 const DEVPOST_URL = "https://innospark-competition.devpost.com/";
@@ -322,10 +321,10 @@ export default function Dashboard() {
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="dashboard-mono text-[11px] text-[var(--muted)]">
-                  Submission Log
+                  Google Form
                 </p>
                 <h2 className="dashboard-display mt-3 text-4xl leading-none text-[var(--ink)]">
-                  Google Form responses
+                  Source summary
                 </h2>
               </div>
               <div className="text-sm text-[var(--muted)]">
@@ -333,41 +332,23 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {snapshot.sheetRows.length > 0 ? (
-              <div className="mt-8 overflow-hidden rounded-[28px] border border-[var(--border-soft)] bg-[var(--panel-strong)]">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-left text-sm">
-                    <thead className="border-b border-[var(--border-soft)] bg-[rgba(28,23,19,0.04)] text-[var(--muted)]">
-                      <tr>
-                        <th className="dashboard-mono px-5 py-4 text-[10px]">#</th>
-                        {snapshot.sheetHeaders.map((header) => (
-                          <th
-                            key={header}
-                            className="dashboard-mono px-5 py-4 text-[10px]"
-                          >
-                            {header}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {snapshot.sheetRows.map((row, index) => (
-                        <SubmissionRow
-                          key={`${index}-${row[snapshot.sheetHeaders[0]] ?? "row"}`}
-                          index={index}
-                          row={row}
-                          headers={snapshot.sheetHeaders}
-                        />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-8 rounded-[28px] border border-dashed border-[var(--border-strong)] bg-[rgba(255,251,244,0.42)] px-6 py-12 text-center text-sm leading-7 text-[var(--muted)]">
-                No Google Form rows are available in the current snapshot.
-              </div>
-            )}
+            <div className="mt-8 grid gap-4 md:grid-cols-3">
+              <PrivacyCard
+                label="Teams submitted"
+                value={formatCount(snapshot.sheetTeamCount)}
+                note="Unique Google Form submissions"
+              />
+              <PrivacyCard
+                label="Participants counted"
+                value={formatCount(snapshot.googleFormCount)}
+                note="Leader plus entered team members"
+              />
+              <PrivacyCard
+                label="Visibility"
+                value="Names hidden"
+                note="Individual Google Form names are no longer shown on the dashboard"
+              />
+            </div>
           </section>
         </>
       )}
@@ -455,23 +436,22 @@ function MiniMeta({ label, value }: { label: string; value: string }) {
   );
 }
 
-function SubmissionRow({
-  headers,
-  index,
-  row,
+function PrivacyCard({
+  label,
+  value,
+  note,
 }: {
-  headers: string[];
-  index: number;
-  row: SheetRow;
+  label: string;
+  value: string;
+  note: string;
 }) {
   return (
-    <tr className="border-t border-[var(--border-soft)] align-top">
-      <td className="px-5 py-4 text-[var(--muted)]">{index + 1}</td>
-      {headers.map((header) => (
-        <td key={header} className="px-5 py-4 text-[var(--muted-strong)]">
-          {row[header] || "—"}
-        </td>
-      ))}
-    </tr>
+    <div className="rounded-[28px] border border-[var(--border-soft)] bg-[var(--panel-strong)] p-6">
+      <p className="dashboard-mono text-[10px] text-[var(--muted)]">{label}</p>
+      <p className="dashboard-display mt-4 text-4xl leading-none text-[var(--ink)]">
+        {value}
+      </p>
+      <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{note}</p>
+    </div>
   );
 }
