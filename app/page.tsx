@@ -165,7 +165,7 @@ export default function Dashboard() {
     null;
 
   return (
-    <main className="relative mx-auto max-w-[1500px] px-4 py-4 sm:px-6 lg:px-8 lg:py-8">
+    <main className="relative mx-auto max-w-[1720px] px-4 py-4 sm:px-6 lg:px-8 lg:py-8">
       {error && (
         <div className="mb-6 rounded-[28px] border border-red-500/20 bg-red-500/8 px-5 py-4 text-sm text-red-900">
           {error}
@@ -201,7 +201,7 @@ export default function Dashboard() {
         </div>
       ) : (
         <>
-          <section className="grid gap-6 xl:grid-cols-[1.34fr_0.76fr]">
+          <section className="grid gap-5 xl:grid-cols-[1.72fr_0.48fr]">
             <div className="dashboard-panel rounded-[34px] p-5 sm:p-6 lg:p-8">
               <ProgressChart
                 history={history}
@@ -222,23 +222,23 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <aside className="dashboard-panel-dark rounded-[34px] p-6 sm:p-8">
+            <aside className="dashboard-panel rounded-[30px] p-5 sm:p-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="dashboard-mono text-[11px] text-[#c9bfaf]">
+                  <p className="dashboard-mono text-[10px] text-[var(--muted)]">
                     Participant Count
                   </p>
-                  <h1 className="dashboard-display mt-5 text-[clamp(4.2rem,8vw,6.4rem)] leading-none text-[#f8f1e5]">
+                  <h1 className="dashboard-display mt-4 text-[clamp(2.8rem,4.3vw,4.1rem)] leading-none text-[var(--ink)]">
                     {formatCount(snapshot.totalParticipants)}
                   </h1>
                   <p
-                    className={`mt-4 text-sm ${
+                    className={`mt-3 text-sm ${
                       getDeltaTone(
                         snapshot.totalParticipants,
                         previousPoint?.totalParticipants ?? null
                       ) === "positive"
-                        ? "text-[#f0d5bc]"
-                        : "text-[#bdb19f]"
+                        ? "text-[var(--accent)]"
+                        : "text-[var(--muted)]"
                     }`}
                   >
                     {formatDelta(
@@ -253,13 +253,13 @@ export default function Dashboard() {
                   type="button"
                   onClick={() => void fetchDashboard()}
                   disabled={refreshing}
-                  className="rounded-full border border-[#f0e6d7]/20 bg-[#f5ecde]/8 px-4 py-2 text-xs font-medium tracking-[0.18em] text-[#f5ede1] uppercase transition hover:bg-[#f5ecde]/14 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-full border border-[var(--border-strong)] bg-[rgba(255,252,245,0.86)] px-4 py-2 text-[11px] font-medium tracking-[0.16em] text-[var(--ink)] uppercase transition hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Refresh
                 </button>
               </div>
 
-              <div className="mt-8 grid gap-3">
+              <div className="mt-6 grid gap-3">
                 <ParticipantStat
                   label="Total participants"
                   value={snapshot.totalParticipants}
@@ -403,27 +403,27 @@ function ParticipantStat({
   link?: string;
 }) {
   const content = (
-    <div className="rounded-[24px] border border-white/10 bg-white/[0.03] px-5 py-4">
+    <div className="rounded-[22px] border border-[var(--border-soft)] bg-[var(--panel-strong)] px-4 py-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(38,28,16,0.08)]">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="dashboard-mono text-[10px] text-[#c9bfaf]">{label}</p>
-          <p className="dashboard-display mt-3 text-4xl leading-none text-[#f8f1e5]">
+          <p className="dashboard-mono text-[10px] text-[var(--muted)]">{label}</p>
+          <p className="dashboard-display mt-3 text-[2.1rem] leading-none text-[var(--ink)]">
             {formatCount(value)}
           </p>
         </div>
         <span
           className={`rounded-full px-3 py-1 text-xs ${
             tone === "positive"
-              ? "bg-[rgba(216,168,134,0.14)] text-[#f0d5bc]"
+              ? "bg-[rgba(169,90,46,0.1)] text-[var(--accent)]"
               : tone === "negative"
-                ? "bg-[rgba(170,72,54,0.18)] text-[#f4c3b8]"
-                : "bg-white/[0.06] text-[#d0c4b3]"
+                ? "bg-[rgba(170,72,54,0.12)] text-[#9f4331]"
+                : "bg-[rgba(106,98,85,0.1)] text-[var(--muted)]"
           }`}
         >
           {delta}
         </span>
       </div>
-      <p className="mt-3 text-xs text-[#bdb19f]">{note}</p>
+      <p className="mt-3 text-xs text-[var(--muted)]">{note}</p>
     </div>
   );
 
@@ -440,9 +440,9 @@ function ParticipantStat({
 
 function MiniMeta({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-4">
-      <p className="dashboard-mono text-[10px] text-[#c9bfaf]">{label}</p>
-      <p className="mt-3 text-sm text-[#f4ecdf]">{value}</p>
+    <div className="rounded-[18px] border border-[var(--border-soft)] bg-[var(--panel-strong)] px-4 py-4">
+      <p className="dashboard-mono text-[10px] text-[var(--muted)]">{label}</p>
+      <p className="mt-3 text-sm text-[var(--ink)]">{value}</p>
     </div>
   );
 }
