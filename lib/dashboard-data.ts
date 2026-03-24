@@ -11,6 +11,12 @@ export interface SheetData {
   rows: SheetRow[];
 }
 
+export interface DevpostOverview {
+  participantCount: number | null;
+  startDate: string | null;
+  deadline: string | null;
+}
+
 function normalizeCell(value: string): string {
   return value.replace(/\uFEFF/g, "").trim();
 }
@@ -155,6 +161,31 @@ export function extractDevpostParticipantCount(html: string): number | null {
   return null;
 }
 
+function extractFirstMatch(
+  html: string,
+  patterns: RegExp[]
+): string | null {
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match) {
+      return match[1];
+    }
+  }
+
+  return null;
+}
+
+export function extractDevpostOverview(html: string): DevpostOverview {
+  return {
+    participantCount: extractDevpostParticipantCount(html),
+    startDate: extractFirstMatch(html, [/"startDate"\s*:\s*"([^"]+)"/i]),
+    deadline: extractFirstMatch(html, [
+      /"endDate"\s*:\s*"([^"]+)"/i,
+      /<time[^>]*id=["']time-left["'][^>]*datetime=["']([^"']+)["']/i,
+    ]),
+  };
+}
+
 async function fetchText(url: string): Promise<string> {
   const response = await fetch(url, {
     cache: "no-store",
@@ -172,8 +203,13 @@ async function fetchText(url: string): Promise<string> {
 }
 
 export async function fetchDevpostParticipantCount(): Promise<number | null> {
+  const overview = await fetchDevpostOverview();
+  return overview.participantCount;
+}
+
+export async function fetchDevpostOverview(): Promise<DevpostOverview> {
   const html = await fetchText(DEVPOST_URL);
-  return extractDevpostParticipantCount(html);
+  return extractDevpostOverview(html);
 }
 
 export async function fetchSheetData(): Promise<SheetData> {

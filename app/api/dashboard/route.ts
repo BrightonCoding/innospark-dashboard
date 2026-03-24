@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import {
+  fetchDevpostOverview,
   countSheetParticipants,
   countSheetTeams,
-  fetchDevpostParticipantCount,
   fetchSheetData,
 } from "@/lib/dashboard-data";
 import {
@@ -10,6 +10,7 @@ import {
   readDashboardHistory,
   upsertDashboardHistory,
 } from "@/lib/dashboard-history";
+import { buildSubmissionTrend } from "@/lib/dashboard-trends";
 import type { DashboardSnapshot, SheetRow } from "@/lib/dashboard-types";
 
 export const dynamic = "force-dynamic";
@@ -20,20 +21,30 @@ export async function GET() {
   const history = await readDashboardHistory();
   const latestHistoryPoint = history.at(-1) ?? null;
   const [devpostResult, sheetResult] = await Promise.allSettled([
-    fetchDevpostParticipantCount(),
+    fetchDevpostOverview(),
     fetchSheetData(),
   ]);
 
   const warnings: string[] = [];
   let devpostCount: number | null = latestHistoryPoint?.devpostCount ?? null;
+  let devpostStartDate: string | null = null;
+  let devpostDeadline: string | null = null;
   let googleFormCount = latestHistoryPoint?.googleFormCount ?? 0;
   let sheetHeaders: string[] = [];
   let sheetRows: SheetRow[] = [];
   let sheetTeamCount = latestHistoryPoint?.sheetTeamCount ?? 0;
   let stale = false;
 
-  if (devpostResult.status === "fulfilled" && devpostResult.value !== null) {
-    devpostCount = devpostResult.value;
+  if (devpostResult.status === "fulfilled") {
+    devpostStartDate = devpostResult.value.startDate;
+    devpostDeadline = devpostResult.value.deadline;
+  }
+
+  if (
+    devpostResult.status === "fulfilled" &&
+    devpostResult.value.participantCount !== null
+  ) {
+    devpostCount = devpostResult.value.participantCount;
   } else if (latestHistoryPoint) {
     stale = true;
     warnings.push("Devpost is using the most recent saved snapshot.");
@@ -43,7 +54,10 @@ export async function GET() {
 
   if (devpostResult.status === "rejected") {
     console.error("Failed to refresh Devpost data:", devpostResult.reason);
-  } else if (devpostResult.status === "fulfilled" && devpostResult.value === null) {
+  } else if (
+    devpostResult.status === "fulfilled" &&
+    devpostResult.value.participantCount === null
+  ) {
     console.error("Devpost participant count could not be parsed.");
     warnings.push("Devpost loaded, but the participant count could not be parsed.");
   }
@@ -64,8 +78,12 @@ export async function GET() {
   const totalParticipants = (devpostCount ?? 0) + googleFormCount;
   const hasFreshSnapshot =
     devpostResult.status === "fulfilled" &&
-    devpostResult.value !== null &&
+    devpostResult.value.participantCount !== null &&
     sheetResult.status === "fulfilled";
+  const submissionTrend =
+    sheetResult.status === "fulfilled"
+      ? buildSubmissionTrend(sheetRows, sheetHeaders)
+      : [];
 
   const nextHistory = hasFreshSnapshot
     ? await upsertDashboardHistory({
@@ -95,10 +113,13 @@ export async function GET() {
 
   const responseBody: DashboardSnapshot = {
     devpostCount,
+    devpostStartDate,
+    devpostDeadline,
     googleFormCount,
     sheetHeaders,
     sheetRows,
     sheetTeamCount,
+    submissionTrend,
     totalParticipants,
     fetchedAt: hasFreshSnapshot ? fetchedAt : latestHistoryPoint?.updatedAt ?? fetchedAt,
     warnings,

@@ -158,6 +158,11 @@ export default function Dashboard() {
   const previousPoint = getPreviousHistoryPoint(history);
   const trendNote = getTrendNote(previousPoint);
   const firstRecordedPoint = history[0] ?? null;
+  const trackingSinceDate =
+    snapshot?.submissionTrend[0]?.date ??
+    snapshot?.devpostStartDate?.slice(0, 10) ??
+    firstRecordedPoint?.date ??
+    null;
 
   return (
     <main className="relative mx-auto max-w-[1500px] px-4 py-4 sm:px-6 lg:px-8 lg:py-8">
@@ -198,7 +203,15 @@ export default function Dashboard() {
         <>
           <section className="grid gap-6 xl:grid-cols-[1.34fr_0.76fr]">
             <div className="dashboard-panel rounded-[34px] p-5 sm:p-6 lg:p-8">
-              <ProgressChart history={history} />
+              <ProgressChart
+                history={history}
+                submissionTrend={snapshot.submissionTrend}
+                googleFormCount={snapshot.googleFormCount}
+                sheetTeamCount={snapshot.sheetTeamCount}
+                devpostCount={snapshot.devpostCount}
+                devpostStartDate={snapshot.devpostStartDate}
+                devpostDeadline={snapshot.devpostDeadline}
+              />
               <div className="mt-6 flex flex-wrap gap-3 text-sm text-[var(--muted-strong)]">
                 <StatusPill label={refreshing ? "Refreshing" : "Live sync active"} />
                 <StatusPill label="Updates every 30s" />
@@ -305,9 +318,7 @@ export default function Dashboard() {
               <div className="mt-8 grid gap-3 sm:grid-cols-2">
                 <MiniMeta
                   label="Tracking since"
-                  value={
-                    firstRecordedPoint ? formatDay(firstRecordedPoint.date) : "Today"
-                  }
+                  value={trackingSinceDate ? formatDay(trackingSinceDate) : "Today"}
                 />
                 <MiniMeta
                   label="Snapshot time"
